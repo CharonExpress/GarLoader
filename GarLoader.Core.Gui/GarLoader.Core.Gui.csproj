@@ -2,11 +2,15 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net5.0-windows</TargetFramework>
+    <TargetFramework>net7.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
-    <ApplicationIcon>—Pngtree—turd poop emoji sticker cute_5527221.ico</ApplicationIcon>
+    <ApplicationIcon>icons8-address-96.ico</ApplicationIcon>
     <StartupObject>GarLoader.Core.Gui.Program</StartupObject>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="icons8-address-96.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\GarLoader.Core.Lib\GarLoader.Core.Lib.csproj" />

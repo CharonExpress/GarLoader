@@ -20,11 +20,6 @@ namespace GarLoader.Core.Lib
             this.columns = new List<ColumnDefinition>();
         }
 
-        public void AddColumn(string ColumnName, string ColumnType, string Comment = null)
-        {
-            columns.Add(new ColumnDefinition(ColumnName, ColumnType, Comment));
-        }
-
         public string SQLtableComment => string.Format("COMMENT ON TABLE {0}.{1} IS '{2}';", schemaName, tableName, comment);
 
         public string SQLcolumns => string.Join(",", columns.Select(x => x.SQLcolumn).ToArray());
@@ -43,14 +38,19 @@ namespace GarLoader.Core.Lib
         public string columnName;
         public string columnType;
         string comment;
-        public ColumnDefinition(string columnName, string columnType, string comment = null)
+        bool required = false;
+        public ColumnDefinition(string columnName, 
+            string columnType, 
+            string comment = null, 
+            bool required = false)
         {
             this.columnName = columnName;
             this.columnType = columnType;
             this.comment = comment;
+            this.required = required;
         }
 
-        public string SQLcolumn => DBcolumn + " " + columnType;
+        public string SQLcolumn => DBcolumn + " " + columnType + (required ? " NOT NULL" : "") ;
      
 
         public string DBcolumn

@@ -156,6 +156,10 @@ ALTER TABLE fias.as_param
 --as_param_types
 ALTER TABLE fias.as_param_types
     ADD CONSTRAINT as_param_types_pkey PRIMARY KEY (id);			
+CREATE INDEX as_param_typeid_idx
+    ON fias.as_param USING btree
+    (typeid ASC NULLS LAST)
+    TABLESPACE pg_default;
 	
 --as_reestr_objects_idx, pkey
 CREATE INDEX as_reestr_objects_idx

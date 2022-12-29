@@ -129,9 +129,6 @@ namespace GarLoader.Core.Lib
                 {
                     if (Value.ToString().Length > 0)
                     {
-                        if (_targetType.Equals((new DateTime()).GetType()))
-                            _targetValue = new NpgsqlTypes.NpgsqlDate(Convert.ToDateTime(Value));
-                        else
                             _targetValue = Commons.ChangeType(Value, _targetType);
                     }
                 }

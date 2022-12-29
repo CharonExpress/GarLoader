@@ -192,7 +192,8 @@ string file = System.IO.Path.Combine(System.IO.Directory.GetParent(_filePath.Key
                     }
                 }
 
-                Npgsql.NpgsqlConnection conn = new Npgsql.NpgsqlConnection(textBox1.Text);
+                Npgsql.NpgsqlConnection conn = new(textBox1.Text);
+
                 conn.Open();
                 _cs = textBox1.Text;
                 conn.Close();
@@ -214,9 +215,9 @@ string file = System.IO.Path.Combine(System.IO.Directory.GetParent(_filePath.Key
                     }
                 }
             }
-            catch
+            catch(Exception exc)
             {
-
+                Console.WriteLine(exc.Message);
             }
 
             

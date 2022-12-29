@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Xml;
 
 namespace GarLoader.Core.Lib
 {
@@ -31,7 +32,8 @@ namespace GarLoader.Core.Lib
                 tableComment = q.Message;
             }
 
-            TableDefinition _table = new TableDefinition(schemaName.ToLower(), TableName.ToLower(), tableComment);
+            TableDefinition _table = new TableDefinition(schemaName.ToLower(), TableName.ToLower(),
+                tableComment);
 
             System.Xml.XmlNodeList xsdColumns = _doc.SelectNodes(".//xs:attribute", _nsMan);
 
@@ -42,24 +44,21 @@ namespace GarLoader.Core.Lib
             {
                 System.Xml.XmlNode _c = xsdColumns[i];
                 string colName = _c.SelectSingleNode("@name", _nsMan).Value.ToLower();
-                string colComment = _c.SelectSingleNode("xs:annotation/xs:documentation", _nsMan).InnerText;
+                string colComment = _c.SelectSingleNode("xs:annotation/xs:documentation", _nsMan).
+                    InnerText;
                 string xsdcolType;
-                try
-                {
-                    xsdcolType = _c.SelectSingleNode("@type|xs:simpleType/xs:restriction/@base", _nsMan).Value;
-                }
-                catch (Exception exc)
-                {
-                    colComment = "АШИПКА" + exc.Message;
-                    xsdcolType = "xs:string";
-                }
+                XmlNode requiredNode = _c.SelectSingleNode("@use");
+                bool required = requiredNode != null && requiredNode.Value == "required";
+                XmlNode xsdcolTypeNode = _c.SelectSingleNode("@type|xs:simpleType/xs:restriction/@base",
+                        _nsMan);
+                xsdcolType = xsdcolTypeNode != null ? xsdcolTypeNode.Value : "xs:string";
 
 #if DEBUG
                 Console.WriteLine(xsdcolType);
 #endif
                 string colType = typesConversion.Where(x => x.xsdType == xsdcolType).Single().pgType;
 
-                _table.AddColumn(colName, colType, colComment);
+                _table.columns.Add(new(colName, colType, colComment, required));
             }
             return _table;
         }
