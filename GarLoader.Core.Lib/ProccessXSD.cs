@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Xml;
 
 namespace GarLoader.Core.Lib
@@ -13,18 +12,19 @@ namespace GarLoader.Core.Lib
             string _tableName = GetTablesNames.GetTableName(XsdPath);
             return XSDToTableDefinition(XsdPath, _tableName, schemaName);
         }
-        private  TableDefinition XSDToTableDefinition(string XsdPath, string TableName, string schemaName = "fias")
+        private  TableDefinition XSDToTableDefinition(string XsdPath, 
+            string TableName, string schemaName = "fias")
         {
-            System.Xml.XmlDocument _doc = new System.Xml.XmlDocument();
-            _doc.Load(XsdPath);
-            System.Xml.XmlNamespaceManager _nsMan = new System.Xml.XmlNamespaceManager(_doc.NameTable);
-            _nsMan.AddNamespace("xs", "http://www.w3.org/2001/XMLSchema");
+            XmlDocument doc = new();
+            doc.Load(XsdPath);
+            XmlNamespaceManager nsMan = new(doc.NameTable);
+            nsMan.AddNamespace("xs", "http://www.w3.org/2001/XMLSchema");
 
             string tableComment;
             try
             {
-                tableComment = _doc.
-                    SelectSingleNode("xs:schema/xs:element/xs:complexType/xs:sequence/xs:element/xs:annotation/xs:documentation", _nsMan).
+                tableComment = doc.
+                    SelectSingleNode("xs:schema/xs:element/xs:complexType/xs:sequence/xs:element/xs:annotation/xs:documentation", nsMan).
                     InnerText;
             }
             catch (Exception q)
@@ -32,35 +32,48 @@ namespace GarLoader.Core.Lib
                 tableComment = q.Message;
             }
 
-            TableDefinition _table = new TableDefinition(schemaName.ToLower(), TableName.ToLower(),
+            TableDefinition table = new(schemaName.ToLower(), TableName.ToLower(),
                 tableComment);
 
-            System.Xml.XmlNodeList xsdColumns = _doc.SelectNodes(".//xs:attribute", _nsMan);
+            XmlNodeList xsdColumns = doc.SelectNodes(".//xs:attribute", nsMan);
 
             List<XSD2PGTypes.XSD2PGType> typesConversion = (new XSD2PGTypes()).Types;
 
             // Список столбцов
             for (int i = 0; i <= xsdColumns.Count - 1; i++)
             {
-                System.Xml.XmlNode _c = xsdColumns[i];
-                string colName = _c.SelectSingleNode("@name", _nsMan).Value.ToLower();
-                string colComment = _c.SelectSingleNode("xs:annotation/xs:documentation", _nsMan).
+                XmlNode _c = xsdColumns[i];
+                string colName = _c.SelectSingleNode("@name", nsMan).Value.ToLower();
+                string colComment = _c.SelectSingleNode("xs:annotation/xs:documentation", nsMan).
                     InnerText;
                 string xsdcolType;
                 XmlNode requiredNode = _c.SelectSingleNode("@use");
-                bool required = requiredNode != null && requiredNode.Value == "required";
+                bool required = requiredNode != null && requiredNode.Value == "Required";
                 XmlNode xsdcolTypeNode = _c.SelectSingleNode("@type|xs:simpleType/xs:restriction/@base",
-                        _nsMan);
+                        nsMan);
                 xsdcolType = xsdcolTypeNode != null ? xsdcolTypeNode.Value : "xs:string";
 
 #if DEBUG
                 Console.WriteLine(xsdcolType);
 #endif
-                string colType = typesConversion.Where(x => x.xsdType == xsdcolType).Single().pgType;
+                XSD2PGTypes.XSD2PGType columnType;
 
-                _table.columns.Add(new(colName, colType, colComment, required));
+                #region "GUID костыль"
+                if (colComment.Contains("UUID") || colComment.Contains("GUID"))
+                {
+                    columnType = typesConversion.Where(x => x.netType == typeof(Guid)).Single();
+                }
+                else
+                {
+                    columnType = typesConversion.Where(x => x.xsdType == xsdcolType).Single();
+                }
+                #endregion
+
+                NpgsqlTypes.NpgsqlDbType npgSqlType = columnType.NpgsqlDbType;
+
+                table.Columns.Add(new(colName, columnType, colComment, required));
             }
-            return _table;
+            return table;
         }
     }
 }

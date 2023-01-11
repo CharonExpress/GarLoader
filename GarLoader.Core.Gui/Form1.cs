@@ -9,6 +9,13 @@ namespace GarLoader.Core.Gui
     public partial class Form1 : Form
     {
         string _cs;
+        
+        const string doneText = "Загружено";
+
+        string xsdFolder = null;
+
+        string xmlFolder = null;
+
         public Form1()
         {
             InitializeComponent();
@@ -20,7 +27,7 @@ namespace GarLoader.Core.Gui
             {
                 if (string.IsNullOrWhiteSpace(targetSchemaBox.Text))
                 {
-                    return "fias";
+                    return targetSchemaBox.PlaceholderText;
                 }
                 else
                 {
@@ -37,7 +44,7 @@ namespace GarLoader.Core.Gui
         }
 
         /// <summary>
-        /// Програссбар
+        /// Сбросить програссбар
         /// </summary>
         void ResetProgressBar()
         {
@@ -51,8 +58,8 @@ namespace GarLoader.Core.Gui
             FolderBrowserDialog dlg = new FolderBrowserDialog();
             if (dlg.ShowDialog() == DialogResult.OK)
             {
-                string folder = dlg.SelectedPath;
-                await BurnDaHausAsync(folder);
+                xmlFolder = dlg.SelectedPath;
+                await BurnDaHausAsync(SearchSubFoldersBox.Enabled);
             }
         }
 
@@ -61,34 +68,36 @@ namespace GarLoader.Core.Gui
         /// </summary>
         /// <param name="Folder"></param>
         /// <returns></returns>
-        private async System.Threading.Tasks.Task BurnDaHausAsync(string Folder)
+        private async System.Threading.Tasks.Task BurnDaHausAsync(bool searchSubdirectories)
         {
-            string _folder = Folder;
-            string xmlPath = _folder;
-            string xsdPath = _folder;
+            string xmlPath = xmlFolder;
+            string xsdPath = xsdFolder;
             string originalText = Text;
             Dictionary<string, string> tables = GetTablesNames.GetTables(xsdPath);
+
+            System.IO.SearchOption searchOption = 
+                (System.IO.SearchOption)Convert.ToInt32(searchSubdirectories);
 
             foreach (KeyValuePair<string, string> table in tables.AsEnumerable())
             {
                 ResetProgressBar();
                 Text = table.Value;
                 Action<int> progress = new Action<int>(ProgressChanged);
-                string[] files = GetXMLSBySchema(table.Value, xmlPath, true);
+                string[] files = GetXMLSBySchema(table.Value, xmlPath, SearchSubFoldersBox.Enabled);
 
 
 
                 ProccessXSD proc = new ProccessXSD();
                 TableDefinition def = proc.XSDToTableDefinition(table.Key, TargetSchema);
-                if (def.tableName == "as_param")
+                if (def.TableName == "as_param")
                 {
                     ResetProgressBar();
                     Action<int> localProgress = new Action<int>(ProgressChanged);
-                    string[] paramXmls = System.IO.Directory.GetFiles(xmlPath, "AS_*_PARAMS_*.xml", System.IO.SearchOption.AllDirectories);
+                    string[] paramXmls = System.IO.Directory.GetFiles(xmlPath, "AS_*_PARAMS_*.xml", searchOption);
                     foreach (string paramXml in paramXmls)
                     {
                         textBox1.Text = paramXml;
-                        WriteData paramWrt = new WriteData(def, paramXml, _cs, 100);
+                        WriteData paramWrt = new WriteData(def, paramXml, _cs, 50000, showMessage);
                         await paramWrt.ReadXmlAsync(localProgress);
                     }
                     continue;
@@ -102,25 +111,22 @@ namespace GarLoader.Core.Gui
                 foreach (string xmlfile in files)
                 {
                     textBox1.Text = xmlfile;
-                    WriteData wrt = new WriteData(def, xmlfile, _cs);
+                    WriteData wrt = new WriteData(def, xmlfile, _cs, 50000, showMessage);
                     await wrt.ReadXmlAsync(progress);
                 }
             }
+            textBox1.Text = doneText;
             Text = originalText;
             ResetProgressBar();
         }
 
-        private string[] GetXMLSBySchema(string SchemaName, string Folder, bool SearchSubs = true)
+        private string[] GetXMLSBySchema(string schemaName, string folder, bool searchSubs)
         {
             string[] xmls;
-            if (SearchSubs)
-            {
-                xmls = System.IO.Directory.GetFiles(Folder, SchemaName + "_2*.xml", System.IO.SearchOption.AllDirectories);
-            }
-            else
-            {
-                xmls = System.IO.Directory.GetFiles(Folder, SchemaName + "_2*.xml", System.IO.SearchOption.TopDirectoryOnly);
-            }
+            System.IO.SearchOption searchOption = 
+                (System.IO.SearchOption)Convert.ToInt32(searchSubs);
+                xmls = System.IO.Directory.GetFiles(folder, 
+                    schemaName + "_2*.xml", searchOption);
             return xmls;
         }
 
@@ -141,17 +147,20 @@ namespace GarLoader.Core.Gui
             }
         }
 
+        private void showMessage(string message)
+        {
+            MessageBox.Show(message);
+        }
+
         private void CreatTablesButt_Click(object sender, EventArgs e)
         {
+            string xsdPath = xsdFolder;
             string ConnectionString = _cs;
             Npgsql.NpgsqlConnection _conn = new Npgsql.NpgsqlConnection(ConnectionString);
             _conn.Open();
-            FolderBrowserDialog dlg = new FolderBrowserDialog();
-            if (dlg.ShowDialog() != DialogResult.OK)
-            {
-                return;
-            }
-            Dictionary<string, string> xsdFiles = GetTablesNames.GetTables(dlg.SelectedPath);
+            
+
+            Dictionary<string, string> xsdFiles = GetTablesNames.GetTables(xsdPath);
             foreach (KeyValuePair<string, string> _filePath in xsdFiles)
             {
                 ProccessXSD proc = new ProccessXSD();
@@ -199,8 +208,8 @@ string file = System.IO.Path.Combine(System.IO.Directory.GetParent(_filePath.Key
                 conn.Close();
                 textBox1.Text = default;
                 textBox1.Enabled = false;
-                CreatTablesButt.Enabled = true;
-                FolderSelectButton.Enabled = true;
+                SelectXsdButton.Enabled = true;
+                
 
                 string[] specialValues = { "192.168.2.145", "192.168.1.42", "avalon.geo-volodarsk.com" };
                 foreach (string specialV in specialValues)
@@ -221,6 +230,17 @@ string file = System.IO.Path.Combine(System.IO.Directory.GetParent(_filePath.Key
             }
 
             
+        }
+
+        private void SelectXsdButton_Click(object sender, EventArgs e)
+        {
+            FolderBrowserDialog dlg = new FolderBrowserDialog();
+            if (dlg.ShowDialog() == DialogResult.OK)
+            {
+                xsdFolder = dlg.SelectedPath;
+                CreatTablesButt.Enabled = true;
+                FolderSelectButton.Enabled = true;
+            }
         }
     }
 }

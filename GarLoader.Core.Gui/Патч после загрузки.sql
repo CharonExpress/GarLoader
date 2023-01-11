@@ -1,67 +1,60 @@
-CREATE EXTENSION pg_trgm;
---49.7 бд без индексов и ключей. Сразу после загрузки
---40,2 после очистки
+SET search_path TO fias;
 --Очистка от неактивных и неактуальных объектов
-DELETE FROM fias.as_addr_obj WHERE isactive = 0 OR isactual = 0 or id IS NULL;
-DELETE FROM fias.as_addr_obj_division WHERE id IS NULL;
-DELETE FROM fias.as_addr_obj_types WHERE id IS NULL;
-DELETE FROM fias.as_adm_hierarchy WHERE isactive = 0 OR id IS NULL;
-DELETE FROM fias.as_apartment_types WHERE id IS NULL;
-DELETE FROM fias.as_apartments WHERE isactive = 0 OR isactual = 0 OR id IS NULL;
-DELETE FROM fias.as_carplaces WHERE isactive = 0 OR isactual = 0 OR id IS NULL;
-DELETE FROM fias.as_change_history WHERE changeid IS NULL;
-DELETE FROM fias.as_house_types WHERE id IS NULL;
-DELETE FROM fias.as_houses WHERE isactive = 0 OR isactual = 0 OR id IS NULL;
-DELETE FROM fias.as_mun_hierarchy WHERE isactive = 0 OR id IS NULL;
-DELETE FROM fias.as_normative_docs WHERE id IS NULL;
-DELETE FROM fias.as_normative_docs_kinds WHERE id IS NULL;
-DELETE FROM fias.as_normative_docs_types WHERE id IS NULL;
-DELETE FROM fias.as_object_levels WHERE level IS NULL;
-DELETE FROM fias.as_operation_types WHERE id IS NULL;
-DELETE FROM fias.as_param WHERE id IS NULL;
-DELETE FROM fias.as_param_types WHERE id IS NULL;
-DELETE FROM fias.as_reestr_objects WHERE isactive = 0 OR objectid IS NULL;
-DELETE FROM fias.as_room_types WHERE id IS NULL;
-DELETE FROM fias.as_rooms WHERE isactive = 0 OR isactual = 0 OR id IS NULL;
-DELETE FROM fias.as_steads WHERE isactive = 0 OR isactual = 0 OR id IS NULL;
+DELETE FROM as_addr_obj WHERE isactive = 0 OR isactual = 0 or id IS NULL;
+DELETE FROM as_addr_obj_division WHERE id IS NULL;
+DELETE FROM as_addr_obj_types WHERE id IS NULL;
+DELETE FROM as_adm_hierarchy WHERE isactive = 0 OR id IS NULL;
+DELETE FROM as_apartment_types WHERE id IS NULL;
+DELETE FROM as_apartments WHERE isactive = 0 OR isactual = 0 OR id IS NULL;
+DELETE FROM as_carplaces WHERE isactive = 0 OR isactual = 0 OR id IS NULL;
+DELETE FROM as_change_history WHERE changeid IS NULL;
+DELETE FROM as_house_types WHERE id IS NULL;
+DELETE FROM as_houses WHERE isactive = 0 OR isactual = 0 OR id IS NULL;
+DELETE FROM as_mun_hierarchy WHERE isactive = 0 OR id IS NULL;
+DELETE FROM as_normative_docs WHERE id IS NULL;
+DELETE FROM as_normative_docs_kinds WHERE id IS NULL;
+DELETE FROM as_normative_docs_types WHERE id IS NULL;
+DELETE FROM as_object_levels WHERE level IS NULL;
+DELETE FROM as_operation_types WHERE id IS NULL;
+DELETE FROM as_param WHERE id IS NULL;
+DELETE FROM as_param_types WHERE id IS NULL;
+DELETE FROM as_reestr_objects WHERE isactive = 0 OR objectid IS NULL;
+DELETE FROM as_room_types WHERE id IS NULL;
+DELETE FROM as_rooms WHERE isactive = 0 OR isactual = 0 OR id IS NULL;
+DELETE FROM as_steads WHERE isactive = 0 OR isactual = 0 OR id IS NULL;
 
+--фикс типов колонок
 --as_addr_obj
-ALTER TABLE fias.as_addr_obj
-    ALTER COLUMN level TYPE integer
-	USING level::integer;
-ALTER TABLE fias.as_addr_obj
-    ALTER COLUMN objectguid TYPE uuid
-	USING objectguid::uuid;
---as_adm_hierarchy
-ALTER TABLE fias.as_adm_hierarchy
-    ALTER COLUMN regioncode TYPE integer
-	USING regioncode::integer;
---as_apartments
-ALTER TABLE fias.as_apartments
-    ALTER COLUMN objectguid TYPE uuid
-	USING objectguid::uuid;
---as_carplaces
-ALTER TABLE fias.as_apartments
-    ALTER COLUMN objectguid TYPE uuid
-	USING objectguid::uuid;
---as_houses
-ALTER TABLE fias.as_houses
-    ALTER COLUMN objectguid TYPE uuid
-	USING objectguid::uuid;
---as_reestr_objects
-ALTER TABLE fias.as_houses
-    ALTER COLUMN objectguid TYPE uuid
-	USING objectguid::uuid;
---as_rooms
-ALTER TABLE fias.as_houses
-    ALTER COLUMN objectguid TYPE uuid
-	USING objectguid::uuid;
---as_steads
-ALTER TABLE fias.as_houses
-    ALTER COLUMN objectguid TYPE uuid
-	USING objectguid::uuid;
+ALTER TABLE as_addr_obj
+    ALTER COLUMN level TYPE smallint
+	USING level::smallint;
 
---as_addr_obj_idx, pkey
+--as_adm_hierarchy
+ALTER TABLE as_adm_hierarchy
+    ALTER COLUMN regioncode TYPE smallint
+	USING regioncode::smallint;
+
+--as_steads
+ALTER TABLE as_steads
+    ALTER COLUMN opertypeid TYPE smallint
+	USING opertypeid::smallint;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 CREATE INDEX as_addr_obj_level_index
     ON fias.as_addr_obj USING btree
     (level ASC NULLS LAST)
@@ -185,3 +178,4 @@ CREATE INDEX as_steads_objectid_idx
     (objectid ASC NULLS LAST);
 ALTER TABLE fias.as_steads
     ADD CONSTRAINT as_steads_pkey PRIMARY KEY (id);	
+SET search_path TO public;

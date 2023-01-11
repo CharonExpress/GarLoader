@@ -36,6 +36,8 @@ namespace GarLoader.Core.Gui
             this.CreatTablesButt = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
             this.targetSchemaBox = new System.Windows.Forms.TextBox();
+            this.SelectXsdButton = new System.Windows.Forms.Button();
+            this.SearchSubFoldersBox = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // progressBar1
@@ -43,7 +45,7 @@ namespace GarLoader.Core.Gui
             this.progressBar1.ForeColor = System.Drawing.Color.Maroon;
             this.progressBar1.Location = new System.Drawing.Point(12, 97);
             this.progressBar1.Name = "progressBar1";
-            this.progressBar1.Size = new System.Drawing.Size(776, 30);
+            this.progressBar1.Size = new System.Drawing.Size(668, 30);
             this.progressBar1.Step = 1;
             this.progressBar1.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
             this.progressBar1.TabIndex = 2;
@@ -51,29 +53,29 @@ namespace GarLoader.Core.Gui
             // FolderSelectButton
             // 
             this.FolderSelectButton.Enabled = false;
-            this.FolderSelectButton.Location = new System.Drawing.Point(12, 12);
+            this.FolderSelectButton.Location = new System.Drawing.Point(166, 7);
             this.FolderSelectButton.Name = "FolderSelectButton";
-            this.FolderSelectButton.Size = new System.Drawing.Size(229, 30);
+            this.FolderSelectButton.Size = new System.Drawing.Size(128, 43);
             this.FolderSelectButton.TabIndex = 3;
-            this.FolderSelectButton.Text = "Выбрать папку с файлами схем и XML";
+            this.FolderSelectButton.Text = "Выбрать папку с XML";
             this.FolderSelectButton.UseVisualStyleBackColor = true;
             this.FolderSelectButton.Click += new System.EventHandler(this.SelectFolder_Click);
             // 
             // textBox1
             // 
-            this.textBox1.Location = new System.Drawing.Point(12, 48);
+            this.textBox1.Location = new System.Drawing.Point(12, 56);
             this.textBox1.Multiline = true;
             this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(776, 44);
+            this.textBox1.Size = new System.Drawing.Size(668, 36);
             this.textBox1.TabIndex = 4;
             this.textBox1.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
             // 
             // CreatTablesButt
             // 
             this.CreatTablesButt.Enabled = false;
-            this.CreatTablesButt.Location = new System.Drawing.Point(247, 12);
+            this.CreatTablesButt.Location = new System.Drawing.Point(300, 7);
             this.CreatTablesButt.Name = "CreatTablesButt";
-            this.CreatTablesButt.Size = new System.Drawing.Size(153, 30);
+            this.CreatTablesButt.Size = new System.Drawing.Size(125, 43);
             this.CreatTablesButt.TabIndex = 5;
             this.CreatTablesButt.Text = "Создать таблицы";
             this.CreatTablesButt.UseVisualStyleBackColor = true;
@@ -82,7 +84,7 @@ namespace GarLoader.Core.Gui
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(421, 15);
+            this.label1.Location = new System.Drawing.Point(428, 8);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(42, 15);
             this.label1.TabIndex = 6;
@@ -91,16 +93,40 @@ namespace GarLoader.Core.Gui
             // 
             // targetSchemaBox
             // 
-            this.targetSchemaBox.Location = new System.Drawing.Point(469, 12);
+            this.targetSchemaBox.Location = new System.Drawing.Point(476, 5);
             this.targetSchemaBox.Name = "targetSchemaBox";
+            this.targetSchemaBox.PlaceholderText = "fias";
             this.targetSchemaBox.Size = new System.Drawing.Size(204, 23);
             this.targetSchemaBox.TabIndex = 7;
+            // 
+            // SelectXsdButton
+            // 
+            this.SelectXsdButton.Enabled = false;
+            this.SelectXsdButton.Location = new System.Drawing.Point(12, 7);
+            this.SelectXsdButton.Name = "SelectXsdButton";
+            this.SelectXsdButton.Size = new System.Drawing.Size(148, 43);
+            this.SelectXsdButton.TabIndex = 8;
+            this.SelectXsdButton.Text = "Выбрать папку со схемами";
+            this.SelectXsdButton.UseVisualStyleBackColor = true;
+            this.SelectXsdButton.Click += new System.EventHandler(this.SelectXsdButton_Click);
+            // 
+            // SearchSubFoldersBox
+            // 
+            this.SearchSubFoldersBox.AutoSize = true;
+            this.SearchSubFoldersBox.Location = new System.Drawing.Point(459, 33);
+            this.SearchSubFoldersBox.Name = "SearchSubFoldersBox";
+            this.SearchSubFoldersBox.Size = new System.Drawing.Size(188, 19);
+            this.SearchSubFoldersBox.TabIndex = 9;
+            this.SearchSubFoldersBox.Text = "Искать во вложенных папках";
+            this.SearchSubFoldersBox.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(799, 139);
+            this.ClientSize = new System.Drawing.Size(688, 139);
+            this.Controls.Add(this.SearchSubFoldersBox);
+            this.Controls.Add(this.SelectXsdButton);
             this.Controls.Add(this.targetSchemaBox);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.CreatTablesButt);
@@ -124,6 +150,8 @@ namespace GarLoader.Core.Gui
         private System.Windows.Forms.Button CreatTablesButt;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.TextBox targetSchemaBox;
+        private System.Windows.Forms.Button SelectXsdButton;
+        private System.Windows.Forms.CheckBox SearchSubFoldersBox;
     }
 }
 

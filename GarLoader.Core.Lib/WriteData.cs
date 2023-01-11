@@ -1,16 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using NpgsqlTypes;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using static GarLoader.Core.Lib.XSD2PGTypes;
 
 namespace GarLoader.Core.Lib
 {
     public class WriteData
     {
-        public List<XSD2PGType> typesList;
         TableDefinition tableDefinition;
         private Npgsql.NpgsqlConnection _conn;
         Npgsql.NpgsqlBinaryImporter _wrt;
@@ -18,20 +15,26 @@ namespace GarLoader.Core.Lib
         string _dbTableName, _dbColumns, xmlFile;
         public int percentage;
         string ConnectionString;
-        public WriteData(TableDefinition TableDefinition, string InputXml, string connString, int BulkSize = 50000)
+        private readonly Action<string> logger;
+        public WriteData(TableDefinition TableDefinition,
+            string InputXml,
+            string connString,
+            int BulkSize = 50000,
+            Action<string> loggerAction = null)
         {
-            typesList = (new XSD2PGTypes()).Types;
             tableDefinition = TableDefinition;
             ConnectionString = connString;
+            logger = loggerAction;
             // Задаю соединение
             _conn = new Npgsql.NpgsqlConnection(ConnectionString);
             _conn.Open();
 
             // Открываем операцию копирования
-            _dbTableName = tableDefinition.schemaName + "." + tableDefinition.tableName;
-            Console.WriteLine(tableDefinition.schemaName);
-            _dbColumns = string.Join(",", tableDefinition.columns.Select(c => c.DBcolumn).ToArray());
-            _wrt = _conn.BeginBinaryImport(string.Format("COPY {0} ({1}) FROM STDIN (FORMAT BINARY)", _dbTableName, _dbColumns));
+            _dbTableName = tableDefinition.SchemaName + "." + tableDefinition.TableName;
+            Console.WriteLine(tableDefinition.SchemaName);
+            _dbColumns = string.Join(",", tableDefinition.Columns.Select(c => c.DBcolumn).ToArray());
+            string copyCommand = string.Format("COPY {0} ({1}) FROM STDIN (FORMAT BINARY)", _dbTableName, _dbColumns);
+            _wrt = _conn.BeginBinaryImport(copyCommand);
             xmlFile = InputXml;
 
             bulkSize = BulkSize;
@@ -54,11 +57,12 @@ namespace GarLoader.Core.Lib
                 rdr.MoveToContent();
 
                 // Новая строка
-                BulkData _pair = new BulkData(tableDefinition, typesList);
+                BulkData _pair = new BulkData(tableDefinition);
 
                 // Чтение элемента
                 while (rdr.MoveToNextAttribute())
                 {
+
                     if (rdr.NodeType == System.Xml.XmlNodeType.Attribute)
                         _pair.InsertCell(rdr.Name.ToLower(), rdr.Value);
                 }
@@ -77,11 +81,33 @@ namespace GarLoader.Core.Lib
                 // Вставка
                 CancellationTokenSource source = new CancellationTokenSource();
                 CancellationToken token = source.Token;
-                await _wrt.WriteRowAsync(token, _pair.GetRow());
+
+                //Changed from NpgsqlBinaryImporter.WriteRow to Write
+                if (_pair.HasData && _pair.IsValid)
+                {
+                    await _wrt.StartRowAsync(token);
+                    var columns = _pair.GetColumns();
+                    foreach (var column in columns)
+                    {
+                        if (column.Item2 == null)
+                        {
+                            await _wrt.WriteNullAsync(token);
+                        }
+                        else
+                        {
+                            await _wrt.WriteAsync(column.Item1, column.Item2.Value, token);
+                        }
+                    }
+                }
+
+                if (!_pair.IsValid && logger != null) logger.
+                        Invoke($"В данных для таблицы {tableDefinition.TableName} " +
+                        $"присутствует строка с обязательным, " +
+                        $"но пустым значением. " +
+                        $"Строка содержит {_pair.GetColumns().
+                        Select(val => val.Item1.ToString())} ");
 
 
-
-                
                 //Проверяем достигнут ли максимальный размер списка
                 if (i == bulkSize)
                 {
@@ -93,8 +119,6 @@ namespace GarLoader.Core.Lib
                     {
                         percentProgress(percentage);
                     }
-                    
-                    
                 }
             }
 
@@ -105,62 +129,80 @@ namespace GarLoader.Core.Lib
             }
             await _wrt.CloseAsync();
             await _conn.CloseAsync();
-            }
+        }
 
         class BulkData
         {
-            List<XSD2PGType> typesList { get; set; }
             TableDefinition tableDefinition;
             public List<BulkRecord> Data { get; }
-            public BulkData(TableDefinition TableDefinition, List<XSD2PGType> TypesList)
+
+            /// <summary>
+            /// Проверка если колонка NOT NULL но при этом в XML отсутствует значение
+            /// </summary>
+            public bool IsValid { get; private set; } = true;
+
+            public bool HasData => Data.Count > 0;
+            public BulkData(TableDefinition TableDefinition)
             {
                 Data = new List<BulkRecord>();
-                typesList = TypesList;
                 tableDefinition = TableDefinition;
             }
 
             public void InsertCell(string ColumnName, object Value)
             {
-                string _pgType = tableDefinition.columns.Where(y => y.columnName == ColumnName).FirstOrDefault().columnType;
-                Type _targetType = typesList.Where(x => x.pgType == _pgType).FirstOrDefault().netType;
-                object _targetValue = null;
+                var columnDefinition = tableDefinition.Columns.
+                    Where(y => y.ColumnName == ColumnName).FirstOrDefault();
 
-                if (Value != null)
+                Type targetNetType = columnDefinition.NetType;
+
+                object targetValue = null;
+
+                if (Value != null && Value.ToString().Length > 0)
                 {
-                    if (Value.ToString().Length > 0)
-                    {
-                            _targetValue = Commons.ChangeType(Value, _targetType);
-                    }
+                    targetValue = Commons.ChangeType(Value, targetNetType);
                 }
-                Data.Add(new BulkRecord(ColumnName, _targetValue));
+
+                if (Value == null && columnDefinition.Required) IsValid = false;
+
+                Data.Add(new BulkRecord(ColumnName, targetValue, columnDefinition.NpgsqlDbType));
             }
 
-            public object[] GetRow()
+            public IEnumerable<Tuple<object, NpgsqlDbType?>> GetColumns()
             {
-                List<object> values = new List<object>();
-                foreach (ColumnDefinition c in tableDefinition.columns)
+                List<Tuple<object, NpgsqlDbType?>> items = new();
+                foreach (ColumnDefinition columnDefinition in tableDefinition.Columns)
                 {
-                    if (Data.Where(d => d.ColumnName == c.columnName).Count() > 0)
+                    var column = Data.Where(data => data.ColumnName ==
+                    columnDefinition.ColumnName);
+                    if (column.Count() > 0)
                     {
-                        values.Add(Data.Where(d => d.ColumnName == c.columnName).FirstOrDefault().ObjectValue);
+                        object objectValue = column.FirstOrDefault().ObjectValue;
+
+                        NpgsqlDbType npgsqlDbType = columnDefinition.NpgsqlDbType;
+                        items.Add(new(objectValue, npgsqlDbType));
                     }
                     else
                     {
-                        values.Add(null);
+                        items.Add(new(null, null));
                     }
                 }
-                return values.ToArray();
+                return items;
             }
         }
 
         class BulkRecord
         {
             public string ColumnName { get; set; }
+
             public object ObjectValue { get; set; }
-            public BulkRecord(string columnName, object value)
+
+            public NpgsqlDbType NpgsqlDbType { get; set; }
+
+            public BulkRecord(string columnName, object value, NpgsqlDbType npgsqlDbType)
             {
                 ColumnName = columnName;
                 ObjectValue = value;
+                NpgsqlDbType = npgsqlDbType;
             }
         }
     }
